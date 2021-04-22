@@ -3,6 +3,7 @@ library(tidyverse)
 library(xgboost)
 library(randomForest)
 library(lme4)
+library(scales)
 source("src/functions.R")
 
 data <- read.dta("data/mortgage/mortgage.dta") %>%
@@ -149,3 +150,100 @@ results$joint_white <- joint_white
 results$joint_black <- joint_black
 
 saveRDS(results, "data/to_plot/mortgage.rds")
+
+results_melt <- results %>%
+    reshape2::melt() %>%
+    mutate(var_name = gsub("_.*", "", variable),
+           sub = ifelse(grepl("_b", variable), "Black",
+                        ifelse(grepl("_w", variable), "White",
+                               ifelse(grepl("_f", variable), "Female",
+                                      ifelse(grepl("_m", variable), "Male",
+                                             ifelse(grepl("black", variable), "Black",
+                                                   ifelse(grepl("white", variable), "White",
+                                                         ifelse(grepl("perf", variable), "Both", "All"))))))))
+
+results_melt$var_name = factor(results_melt$var_name, levels = c("m0", "m1", "m2",
+                                                                 "m3", "m4", "m5", "joint"))
+
+results_group <- results_melt %>%
+    group_by(variable) %>%
+    summarise(mean = mean(value),
+              sd = sd(value),
+              p5 = quantile(value, 0.05),
+              p95 = quantile(value, 0.95)) %>%
+    mutate(var_name = gsub("_.*", "", variable),
+           sub = ifelse(grepl("_b", variable), "Black",
+                        ifelse(grepl("_w", variable), "White",
+                               ifelse(grepl("_f", variable), "Female",
+                                      ifelse(grepl("_m", variable), "Male", "All")))),
+           model_type = ifelse(grepl("joint", var_name), "Separate models", "One model"))
+
+add_all_mean <- results_group[results_group$sub == "All", c("var_name", "mean")] %>%
+    rename(all_mean = mean)
+
+results_group <- results_group %>%
+    left_join(add_all_mean, by = "var_name")
+
+results_group$label <- paste0(round(results_group$mean, 3) * 100, "%")
+    
+
+
+rel_df <- results_group %>% filter(grepl("All|Black", sub)) %>% filter(!grepl("m3|m5", var_name))
+rel_df$var_name <- c(rep(c("+ Race Dummy", "+ Household\nCharacteristics", "+ Objective\n Scores", "Null\nModel"), 2),
+                     "Separate model\nby race", "Separate model\nby race")
+
+plot_df <- cross_df %>%
+  reshape2::melt() %>%
+  rename(success = value) %>%
+  mutate(failure = 1 - success) %>%
+  group_by(variable) %>%
+  summarise(p5_success = quantile(success, 0.05),
+            p95_success = quantile(success, 0.95),
+            p5_failure = quantile(failure, 0.05),
+            p95_failure = quantile(failure, 0.95),
+            success = mean(success),
+            failure = mean(failure)) %>%
+  mutate(model = ifelse(grepl("b_b|w_w", variable), "Own", "Other"),
+         race = ifelse(grepl("^b", variable), "Black", "White"))
+
+final_plot_df <- rbind(plot_df[, c("variable", "success", "p5_success", "p95_success", "model", "race")] %>%
+                         rename(value = success,
+                                p5 = p5_success,
+                                p95 = p95_success) %>%
+                         mutate(x = "Accepted"),
+                       plot_df[, c("variable", "failure", "p5_failure", "p95_failure", "model", "race")] %>%
+                         rename(value = failure,
+                                p5 = p5_failure,
+                                p95 = p95_failure) %>%
+                         mutate(x = "Denied"))
+
+final_plot_df$x <- factor(final_plot_df$x, levels = c("Accepted", "Denied"))
+
+plot_df <- final_plot_df %>%
+  reshape2::melt() %>%
+  rename(success = value) %>%
+  mutate(failure = 1 - success) %>%
+  group_by(variable) %>%
+  summarise(p5_success = quantile(success, 0.05),
+            p95_success = quantile(success, 0.95),
+            p5_failure = quantile(failure, 0.05),
+            p95_failure = quantile(failure, 0.95),
+            success = mean(success),
+            failure = mean(failure)) %>%
+  mutate(model = ifelse(grepl("b_b|w_w", variable), "Own", "Other"),
+         race = ifelse(grepl("^b", variable), "Black", "White"))
+
+final_plot_df <- rbind(plot_df[, c("variable", "success", "p5_success", "p95_success", "model", "race")] %>%
+                         rename(value = success,
+                                p5 = p5_success,
+                                p95 = p95_success) %>%
+                         mutate(x = "Accepted"),
+                       plot_df[, c("variable", "failure", "p5_failure", "p95_failure", "model", "race")] %>%
+                         rename(value = failure,
+                                p5 = p5_failure,
+                                p95 = p95_failure) %>%
+                         mutate(x = "Denied"))
+
+final_plot_df$x <- factor(final_plot_df$x, levels = c("Accepted", "Denied"))
+
+saveRDS(final_plot_df, "data/to_plot/mortgage_cross.rds")
