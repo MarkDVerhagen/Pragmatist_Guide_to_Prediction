@@ -424,8 +424,9 @@ estimates_with_intervals %>%
          outcome_name = fct_reorder(outcome_name,-point)) %>%
   write.csv("data/ffc/main_plot.csv")
 
-
-## Generate individual predictions for GPA
+############################################
+## Generate individual predictions for GPA #
+############################################
 ## Code by Mark Verhagen
 
 ## Read train and test set from FFC reproduction package
@@ -493,3 +494,30 @@ results_melt <- reshape2::melt(results, id.vars = c("test", "nul")) %>%
          variable = gsub("lm2", "Household +\nlagged GPA", variable))
 
 saveRDS(results_melt, "data/to_plot/ffc_gpa.rds")
+
+
+########################################
+## Plot each teams predictive accuracy #
+########################################
+## Code by Mark Verhagen
+
+submissions <- read.csv("data/ffc/submissions.csv")
+main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
+
+sub_df <- submissions %>%
+  group_by(account, outcome) %>%
+  summarise(r2_holdout = unique(r2_holdout),
+            r2_bench = unique(ybar_train)) %>%
+  filter(r2_holdout > -0.2) %>%
+  ungroup() %>%
+  mutate(type = "Submission") %>%
+  left_join(main_plot_ffc %>%
+              dplyr::select(outcome, benchmark)) %>%
+  mutate(`Improved on\nBenchmark` = ifelse(r2_holdout > benchmark,
+                                          "True", "False"))
+
+sub_df$outcome <- factor(sub_df$outcome,
+  levels = unique(sub_df$outcome[order(sub_df$benchmark, decreasing = T)])
+)
+
+saveRDS(sub_df, "data/to_plot/ffc_all_submissions.rds")

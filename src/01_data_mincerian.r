@@ -139,4 +139,41 @@ for (i in names(df_results)) {
     df_results[[i]] <- as.numeric(df_results[[i]])
 }
 
-saveRDS(df_results, "data/to_plot/mincerian.rds")
+df_results <- readRDS("data/to_plot/mincerian.rds")
+df <- df_results %>%
+  mutate(lm_1_1 = 1 - (lm_1_1 / lm_1_bench),
+         lm_1_2 = 1 - (lm_1_2 / lm_1_bench),
+         lm_1_3 = 1 - (lm_1_3 / lm_1_bench),
+         lm_2_1 = 1 - (lm_2_1 / lm_2_bench),
+         lm_2_2 = 1 - (lm_2_2 / lm_2_bench),
+         lm_2_3 = 1 - (lm_2_3 / lm_2_bench),
+         lm_3_1 = 1 - (lm_3_1 / lm_3_bench),
+         lm_3_2 = 1 - (lm_3_2 / lm_3_bench),
+         lm_3_3 = 1 - (lm_3_3 / lm_3_bench),
+         gb_1 = 1 - (gb_1 / lm_1_bench),
+         gb_2 = 1 - (gb_3 / lm_2_bench),
+         gb_3 = 1 - (gb_3 / lm_3_bench)) %>%
+  dplyr::select(-lm_1_bench, -lm_2_bench, -lm_3_bench)
+
+df_melt <- df %>%
+  reshape2::melt() %>%
+  mutate(dataset = ifelse(grepl("lm_1|gb_1", variable), "Dataset I",
+                          ifelse(grepl("lm_2|gb_2", variable), "Dataset II",
+                                 ifelse(grepl("lm_3|gb_3", variable), "Dataset III",
+                                        "Else"))),
+         model = ifelse(grepl("\\d{1}_1", variable), "Linear I",
+                        ifelse(grepl("\\d{1}_2", variable), "Linear II",
+                               ifelse(grepl("\\d{1}_3", variable), "Linear III",
+                                      ifelse(grepl("gb", variable), "XGBoost",
+                                            "Other")))))
+
+df_plot <- df_melt %>%
+  group_by(variable) %>%
+  summarise(mean = mean(value),
+            sd = sd(value),
+            model = unique(model),
+            dataset = unique(dataset))
+
+df_plot$model <- factor(df_plot$model, levels = c("XGBoost", "Linear I", "Linear II", "Linear III"))
+
+saveRDS(df_plot, "data/to_plot/mincerian.rds")
