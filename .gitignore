@@ -1,3 +1,6 @@
 data/ffc/
 data/mincerian/
 data/mortgage/
+data/teacher_bias/
+src/00_data.R
+src/.Rhistory
