@@ -53,3 +53,27 @@ predict_models <- function(df_test, df_train, fits,
                             mean(df_train[[x]]))
     return(list(predict_fun, predicts_mean))
 }
+
+## 04_teacher_bias.R
+
+delist_perf <- function(df, col_names = c(
+                            "lm_g", "lm_gender", "lm_ses", "lme_g",
+                            "lme_gender", "lme_ses", "op_g", "op_gender",
+                            "op_ses", "mop_g", "mop_gender", "mop_ses",
+                            "full_g", "full_gender", "full_ses"
+                        )) {
+    list_df <- c()
+    first <- T
+
+    for (i in 1:dim(df)[1]) {
+        new <- as.data.frame(t(unlist(df[i, ])))
+        names(new) <- col_names
+        if (first) {
+            list_df <- new
+            first <- F
+        } else {
+            list_df <- rbind(list_df, new)
+        }
+    }
+    return(list_df)
+}
