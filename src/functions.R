@@ -77,3 +77,125 @@ delist_perf <- function(df, col_names = c(
     }
     return(list_df)
 }
+
+## 13_inference.R
+
+delist_cross <- function(df, col_names) {
+  list_df <- c()
+  first <- T
+  i <- 1
+  for (i in 1 : length(df)) {
+    new <- c(t(df[i]))[[1]]
+    names(new) <- col_names
+    if (first) {
+      list_df <- new 
+      first <- F
+    } else {
+      list_df <- rbind(list_df, new)
+    }
+  }
+  rownames(list_df) <- NULL
+  list_df <- list_df / rowSums(list_df)
+  return(list_df)
+}
+
+ap_cuts <- function(mod, test) {
+  linspace <- as.matrix(test[names(mod$coefficients)]) %*% mod$coefficients
+  linspace <- linspace[order(linspace)]
+  
+  zetas <- mod$zeta
+  df <- data.frame(
+    p1 = pnorm(zetas[1] - linspace, 0, 1),
+    p2 = pnorm(zetas[2] - linspace, 0, 1) - pnorm(zetas[1] - linspace, 0, 1),
+    p3 = pnorm(zetas[3] - linspace, 0, 1) - pnorm(zetas[2] - linspace, 0, 1),
+    p4 = pnorm(zetas[4] - linspace, 0, 1) - pnorm(zetas[3] - linspace, 0, 1),
+    p5 = 1 - pnorm(zetas[4] - linspace, 0, 1))
+  
+  final_df <- data.frame(fixed = linspace,
+                         prediction = apply(df, 1, function(x) which.max(x)))
+  cuts <- final_df %>%
+    arrange(fixed) %>%
+    filter(!duplicated(prediction),
+           prediction != 1)
+  return(cuts$fixed)  
+}
+
+generate_ranef_df <- function(object_lm, overall_intercept) {
+  ranef_se <- arm::se.ranef(object_lm)
+  ranef_df <- data.frame(school = 1 : length(coef(object_lm)$s_id[, 1]),
+                         intercept = coef(object_lm)$s_id[, 1],
+                         se = ranef_se$s_id,
+                         s_id = rownames(ranef_se$s_id))
+  names(ranef_df) <- c("School", "Intercept", "SE", "s_id")
+  
+  ranef_df <- ranef_df %>%
+    mutate(lb_intercept = -2 * SE + Intercept,
+           ub_intercept = 2 * SE + Intercept)
+  
+  ranef_df <- ranef_df[order(ranef_df$Intercept), ] %>%
+    mutate(Class = 1 : dim(ranef_df)[1],
+           Sig = ifelse((lb_intercept > overall_intercept) | (ub_intercept < overall_intercept),
+                        "Excl. intercept", "Incl. intercept"))
+  return(ranef_df)
+}
+
+normalize_op <- function(df_op, df_lm, maths = T) {
+  
+  if (maths) {
+    ratio <- (df_lm$Estimate[rownames(df_lm) == "mean_Maths"]) /
+      (df_op$Estimate[df_op$labels == "mean_Maths"])
+    
+    return(df_op %>%
+             filter(!grepl("\\|", labels)) %>%
+             mutate(Estimate = Estimate * ratio,
+                    `Std. Error` = `Std. Error` * ratio))
+  } else {
+    diff <- (df$Estimate[df$labels == "4|5"] -
+               df$Estimate[df$labels == "1|2"]) / 3
+    return(df %>%
+             filter(!grepl("\\|", labels)) %>%
+             mutate(Estimate = Estimate / diff,
+                    `Std. Error` = `Std. Error` / diff))
+  }
+}
+
+cross_plot <- function(df1, df2, first = T, color1 = "#EE0000FF", color2 = "#3B4992FF") {
+  
+  df_own <- df1
+  df_other <- df2
+  if (mean(df_own %*% c(1, 2, 3, 4, 5)) > mean(df_other %*% c(1, 2, 3, 4, 5))) {
+    offset = 1  
+  } else {
+    offset = -1
+  }
+  
+  
+  plot_df <- data.frame(df_own, df_other) %>%
+    reshape2::melt() %>%
+    group_by(variable) %>%
+    summarise(mean = mean(value),
+              ptile_5 = quantile(value, probs=0.05, na.rm=TRUE),
+              ptile_95 = quantile(value, probs=0.95, na.rm=TRUE)) %>%
+    mutate(model = ifelse(grepl("\\.1", variable), "Other model", "Own model"),
+           x = gsub("\\.1", "", variable))
+  
+  ggplot(plot_df, aes(x = x, y = mean, fill =model)) +
+    geom_bar(stat = "summary", position = position_dodge(), color = "black") +
+    geom_errorbar(aes(ymin = ptile_5, ymax = ptile_95), width = 0.2, position = position_dodge(width=1)) +
+    geom_text(aes(label = paste0(round(mean, 3) * 100, "%")), position = position_dodge(width = 1), hjust=-.4, size=4) +
+    coord_flip() + scale_fill_aaas(name = "Prediction model") + cowplot::theme_cowplot() +
+    geom_vline(xintercept = mean(df_own %*% c(1, 2, 3, 4, 5)), linetype="dashed",
+               color = color1) +
+    annotate("text", x = mean(df_own %*% c(1, 2, 3, 4, 5)) + 0.2 * offset, y = 0.6, color = color1, size = 4,
+             label = as.character(round(mean(df_own %*% c(1, 2, 3, 4, 5)), 3))) +
+    geom_vline(xintercept = mean(df_other %*% c(1, 2, 3, 4, 5)), linetype = "dashed",
+               color = color2) +
+    annotate("text", x = mean(df_other %*% c(1, 2, 3, 4, 5)) - 0.2 * offset, y = 0.6, color = color2, size = 4,
+             label = as.character(round(mean(df_other %*% c(1, 2, 3, 4, 5)), 3))) +
+    theme(legend.position = "bottom",
+          text = element_text(size = 14),
+          axis.text.x = element_text(size = 14), axis.text.y = element_text(size = 14)
+    ) +
+    ylim(c(0, 0.65)) +
+    xlab("Predicted track level") + ylab("Proportion of predictions assigned to track")
+}
