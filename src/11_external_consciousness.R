@@ -3,7 +3,7 @@
 packages <- c(
   "tidyverse", "caret", "stargazer", "lme4", "leaps", "gtools",
   "BBmisc", "ggthemes", "arm", "ggsci", "reshape2", "patchwork",
-  "hrbrthemes", "cowplot", "showtext"
+  "hrbrthemes", "cowplot", "showtext", "scales"
 )
 
 lapply(packages, require, character.only = TRUE)
@@ -25,9 +25,9 @@ theme_custom <- theme(panel.grid.major.x = element_line(size = 0.5, linetype = '
                       panel.spacing.y=unit(0.1, "lines"),
                       panel.border = element_rect(color = "lightgrey", fill = NA, size = 0.5),
                       legend.position = "top",
-                      text = element_text(size = 16),
-                      axis.text.x = element_text(size = 16),
-                      axis.text.y = element_text(size = 16))
+                      text = element_text(size = 20),
+                      axis.text.x = element_text(size = 20),
+                      axis.text.y = element_text(size = 20))
 
 ## Read data taken directly from the PNAS paper of the FFC.
 main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
@@ -54,26 +54,94 @@ fig_1a <- ggplot(ffc_df, aes(y = bench, x = outcomes)) +
                                           colour = "lightgrey"), 
         panel.grid.minor.y = element_line(size = 0.125, linetype = 'dotted',
                                           colour = "lightgrey"),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = (text_size - 1)),
+        axis.text.x = element_text(angle = 50, hjust = 1, size = (text_size - 1)),
         axis.text.y = element_text(size = (text_size - 1)),
         text = element_text(size = text_size)) +
   scale_x_discrete(labels = c("Material\nhardship", "GPA", "Job training",
                               "Eviction", "Grit", "Layoff")) +
-  ylim(0, 1) + theme_custom
+  ylim(0, 1) + theme_custom +
+  theme(axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 15),
+        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 16))
 
 ## 1B - Fragile Families detail of GPA predictions ------------------------
 
-results_melt <- readRDS("data/to_plot/ffc_gpa.rds")
+## Read train and test set from FFC reproduction package
+df_train <- read.csv("data/ffc/train.csv")
+df_test <- read.csv("data/ffc/test.csv")
+
+## Read full background set from FFC reprooduction package
+background_raw <- readRDS("data/ffc/background.rds")
+
+## Transform missingness into NA
+background <- background_raw %>%
+  mutate(t5c13a_code = ifelse(as.numeric(t5c13a) <= 0, NA, as.numeric(t5c13a)),
+         t5c13b_code = ifelse(as.numeric(t5c13b) <= 0, NA, as.numeric(t5c13b)),
+         t5c13c_code = ifelse(as.numeric(t5c13c) <= 0, NA, as.numeric(t5c13c))) %>%
+  mutate(gpa_age9 = rowMeans(dplyr::select(., c("t5c13a_code", "t5c13b_code", "t5c13c_code")), na.rm = T)) %>%
+  filter(!is.na(gpa_age9))
+
+## Generate trainset
+df_train_features <- background %>%
+  filter(challengeID %in% df_train$challengeID) %>%
+  mutate(mother_race = cm1ethrace,
+         mother_educ = cm1edu,
+         mother_relation = cm1relf,
+         age9_gpa_a = t5c13a,
+         age9_gpa_b = t5c13b,
+         age9_gpa_c = t5c13c)
+
+## Generate testset
+df_test_features <- background %>%
+  filter(challengeID %in% df_test$challengeID) %>%
+  mutate(mother_race = cm1ethrace,
+         mother_educ = cm1edu,
+         mother_relation = cm1relf,
+         age9_gpa_a = t5c13a,
+         age9_gpa_b = t5c13b,
+         age9_gpa_c = t5c13c) %>%
+  filter(mother_educ >= 0) %>%
+  left_join(df_test %>% dplyr::select(challengeID, gpa)) %>%
+  filter(!is.na(gpa))
+
+## Generate simple versions of train and join train outcome
+df_simple_train <- df_train_features %>%
+  dplyr::select(challengeID, mother_race, mother_educ, mother_relation, age9_gpa_a,
+                age9_gpa_b, age9_gpa_c, gpa_age9) %>%
+  left_join(df_train %>% dplyr::select(challengeID, gpa)) %>%
+  filter(!is.na(gpa))
+
+lm_nul <- lm(gpa ~ 1, data = df_simple_train)
+
+lm_gpa <- lm(gpa ~ 1 + as.factor(mother_race) + as.factor(mother_educ) + as.factor(mother_relation),
+             data = df_simple_train)
+
+lm_gpa2 <- lm(gpa ~ 1 + as.factor(mother_race) + as.factor(mother_educ) + as.factor(mother_relation) + gpa_age9,
+              data = df_simple_train)
+
+## Make predictions using the null model, the model with household characteristics, and the full benchmark
+results <- data.frame(test = df_test_features$gpa,
+                      nul = predict(lm_nul, df_test_features),
+                      lm1 = predict(lm_gpa, df_test_features),
+                      lm2 = predict(lm_gpa2, df_test_features))
+
+## Transform predictions for plotting
+results_melt <- reshape2::melt(results, id.vars = c("test", "nul")) %>%
+  mutate(variable = gsub("lm1", "Household", variable),
+         variable = gsub("lm2", "Household +\nlagged GPA", variable))
 
 ## Generate plot 1.B
 fig_1b <- ggplot(results_melt, aes(y = value, x = test, color = variable)) + geom_point(alpha = 0.7) +
   geom_hline(aes(yintercept = nul), linetype = "dashed") + cowplot::theme_cowplot() +
   facet_grid(rows = vars(variable)) + xlim(1, 4) + ylim(1,4) + geom_abline(alpha = 0.7, linetype = "dotted") + theme_custom +
-  xlab("Observed GPA") + ylab("Predicted GPA") + theme(legend.position = "none")
+  xlab("Observed GPA") + ylab("Predicted GPA") + theme(legend.position = "none") +
+  theme(axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 16))
 
 ## 1C - Mortgage example - Full and Group Predictive Accuracy ------------------------
 
-results <- readRDS("data/to_plot/mortgage.rds")
+results <- readRDS("data/edit/mortgage_1c_results.rds")
 
 results_melt <- results %>%
   reshape2::melt() %>%
@@ -110,8 +178,6 @@ results_group <- results_group %>%
 
 results_group$label <- paste0(round(results_group$mean, 3) * 100, "%")
 
-library(scales)
-
 rel_df <- results_group %>% filter(grepl("All|Black", sub)) %>% filter(!grepl("m3|m5", var_name))
 rel_df$var_name <- c(rep(c("Null\nModel", "+ Objective\n Scores", "+ Household\nCharacteristics", "+ Race Dummy"), 2),
                      "Separate model\nby race", "Separate model\nby race")
@@ -120,19 +186,24 @@ rel_df$var_name <- factor(rel_df$var_name, levels = c("Null\nModel", "+ Objectiv
 
 fig_1c <- ggplot(rel_df, aes(y = mean, x = fct_rev(as.factor(var_name)), fill = sub)) +
   geom_bar(stat = "identity", position = "dodge2", color = "black", alpha = 0.8) +
-  geom_text(aes(label = label, y = 1.02, x = var_name, fill = sub), position = position_dodge(width = .9), width = .2) +
+  geom_text(aes(label = label, y = 1.03, x = var_name, fill = sub), size = 5, position = position_dodge(width = .9), width = .2) +
   # geom_hline(aes(yintercept = all_mean)) +
   # facet_wrap(~var_name) +
   geom_errorbar(aes(ymin = p5, ymax = p95), position = position_dodge(width = .9), width = .2) +
   coord_flip() + 
-  scale_y_continuous(limits=c(0.5, 1.05), oob = scales::rescale_none,
+  scale_y_continuous(limits=c(0.5, 1.065), oob = scales::rescale_none,
                      labels = scales::percent) +
-  cowplot::theme_cowplot() + ggsci::scale_fill_aaas(name = "Sample", labels = c("All applicants", "Non-White applicants")) +
+  cowplot::theme_cowplot() + ggsci::scale_fill_aaas(name = "Sample", labels = c("All", "Non-White only")) +
   ylab("OOS-Predictive Accuracy") + theme_custom + facet_grid(rows = vars(model_type), scales = "free_y", space = "free") + xlab("") +
   theme(axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 12),
-        legend.text = element_text(size = 12))
+        axis.text.y = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 14),
+        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 16))
 
+
+fig_1c
 
 # combine plot ------------------------------------------------------------
 
@@ -146,4 +217,6 @@ fig_1c <- ggplot(rel_df, aes(y = mean, x = fct_rev(as.factor(var_name)), fill = 
   )
 
 ggsave("tex/figs/fig1_external_consciousness.pdf", last_plot(),
-       width = 14, height = 7)
+  width = 14, height = 7
+)
+
