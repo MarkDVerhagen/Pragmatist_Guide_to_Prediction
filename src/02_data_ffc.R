@@ -295,10 +295,6 @@ gpa_benchmark <- benchmarks_long %>%
   filter(outcome == "gpa") %>%
   filter(account == "benchmark_ols_full")
 
-gpa_benchmark %>%
-  # filter(outcome == "gpa") %>%
-  saveRDS("data/edit/ffc_gpa_predictions_baseline.rds")
-
 gpa_benchmark <- benchmarks_long %>%
   filter(outcome == "gpa") %>%
   saveRDS("data/edit/ffc_gpa_predictions_baseline_full.rds")
