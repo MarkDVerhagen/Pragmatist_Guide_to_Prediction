@@ -31,11 +31,11 @@ theme_custom <- theme(
   axis.text.y = element_text(size = 20)
 )
 
-# Data underlying Figure 3 of PNAS paper of the FFC
+## -- Figure 2A
 
 # All submission data from the 160 teams
-main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
-submissions <- read.csv("data/ffc/submissions.csv")
+main_plot_ffc <- read.csv("./data/ffc/main_plot.csv")
+submissions <- read.csv("./data/ffc/submissions.csv")
 
 sub_df <- submissions %>%
   group_by(account, outcome) %>%
@@ -88,7 +88,7 @@ fig_2a <- ggplot(sub_df) +
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 
-# New Fig 2B
+## --- Fig 2B
 
 ## Select top submission of GPA outcome
 max_gpa_holdout <- max(sub_df$r2_holdout[sub_df$outcome == "gpa"])
@@ -102,13 +102,10 @@ acc_df <- submissions %>%
   filter(!is.na(truth))  ## Omit missing outcomes
 
 ## Include linear predictions of baseline model
-base_df <- readRDS("data/edit/ffc_gpa_predictions_baseline.rds") %>%
+base_df <- readRDS("./data/edit/ffc_gpa_predictions_baseline.rds") %>%
   ungroup() %>%
   select(challengeID, prediction) %>%
   rename(ols_prediction = prediction)
-# %>%
-#   filter(predictors == "full")
-
 
 total_df <- acc_df %>%
   left_join(base_df, by = "challengeID") %>%
@@ -140,43 +137,18 @@ fig_2b <- ggplot(total_melt, aes(x = truth, y = value, fill = variable, color = 
     theme(
     legend.text = element_text(size = 15),
     legend.title = element_text(size = 14)
-    # ,
-    # axis.text.x = element_blank(),
-    # axis.ticks.x = element_blank()
   )
     
 
-#  Mincerian wage equation ------------------------------------------------
-
-## SIMPLE SIMULATION PLOT
-
-# data <- readRDS("data/mincerian/simul_1000.rds")
-
-# df <- data %>%
-#   mutate(lm_1_1 = 1 - (lm_1_1 / lm_1_bench),
-#          lm_1_2 = 1 - (lm_1_2 / lm_1_bench),
-#          lm_1_3 = 1 - (lm_1_3 / lm_1_bench),
-#          lm_2_1 = 1 - (lm_2_1 / lm_2_bench),
-#          lm_2_2 = 1 - (lm_2_2 / lm_2_bench),
-#          lm_2_3 = 1 - (lm_2_3 / lm_2_bench),
-#          lm_3_1 = 1 - (lm_3_1 / lm_3_bench),
-#          lm_3_2 = 1 - (lm_3_2 / lm_3_bench),
-#          lm_3_3 = 1 - (lm_3_3 / lm_3_bench),
-#          gb_1 = 1 - (gb_1 / lm_1_bench),
-#          gb_2 = 1 - (gb_2 / lm_2_bench),
-#          gb_3 = 1 - (gb_3 / lm_3_bench)) %>%
-#   dplyr::select(-lm_1_bench, -lm_2_bench, -lm_3_bench)
-
-## Using the data from 
+## -- Figure 2C
 
 df <- readRDS("./data/edit/simul_4models_10.rds") %>%
   filter(!grepl("4", variable))
 
 df_melt <- df %>%
-  # reshape2::melt() %>%
-  mutate(dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "Dataset I",
-                          ifelse(grepl("lm_2|rf_2|gb_2", variable), "Dataset II",
-                                 ifelse(grepl("lm_3|rf_3|gb_3", variable), "Dataset III",
+  mutate(dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "./Dataset I",
+                          ifelse(grepl("lm_2|rf_2|gb_2", variable), "./Dataset II",
+                                 ifelse(grepl("lm_3|rf_3|gb_3", variable), "./Dataset III",
                                         "Else"))),
          model = ifelse(grepl("\\d{1}_1", variable), "Linear I",
                         ifelse(grepl("\\d{1}_2", variable), "Linear II",
@@ -185,16 +157,7 @@ df_melt <- df %>%
                                              ifelse(grepl("gb", variable), "XGBoost",
                                                     "Other"))))))
 
-# df_summ <- df_melt %>%
-#   group_by(variable) %>%
-#   summarise(mean = mean(value),
-#             sd = sd(value),
-#             model = unique(model),
-#             dataset = unique(dataset))
-
-df_summ <- df_melt
-
-df_plot <- df_summ %>%
+df_plot <- df_melt %>%
   filter(!grepl("rf", variable))
 
 df_plot$model <- factor(df_plot$model, levels = c("XGBoost", "Linear I", "Linear II", "Linear III"))
@@ -204,11 +167,9 @@ fig_2c <- ggplot(df_plot, aes(y = mean, x = model, group = dataset, fill = model
   color = "black", alpha = 0.9) +
   geom_text(aes(label = paste0(as.character(round(mean, 2) * 100), "%")), vjust=-0.5, size = 4.5, family = font_family) +
   scale_fill_manual(values = MetBrewer::met.brewer("Egypt"), name = "") +
-  # scale_fill_manual(values = MetBrewer::met.brewer("Cassatt2")[c(6, 5, 4, 3)], name = "Model") +
   ylim(0, 1) +
   scale_y_continuous(limits=c(0.5, 1.05), oob = scales::rescale_none,
                      labels = scales::percent_format(accuracy = 5L)) +
-  # geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.5) +
   facet_wrap(~dataset) +
   cowplot::theme_cowplot() + xlab("Model used for prediction") + ylab("Predictive R-squared") +
   theme_custom +
@@ -229,5 +190,3 @@ fig_2c <- ggplot(df_plot, aes(y = mean, x = model, group = dataset, fill = model
 ggsave("tex/figs/fig2_benchmarking_new.pdf", last_plot(),
        width = 16, height = 14
 )
-
-
