@@ -16,7 +16,9 @@ The second dataset used is a simulation of years of education and wages and can 
 
 The third dataset used is available from Stata .
 
-The fourth dataset contains sensitive student-level data and cannot be shared. The code used to analyze the data and extensive descriptives can be found elsewhere, for more information you can read the paper [here](https://osf.io/preprints/socarxiv/y6mnb/).
+The fourth dataset contains sensitive student-level data and cannot be shared. The code used to analyze the data and extensive descriptives can be found elsewhere, for more information you can read the original paper [here](https://osf.io/preprints/socarxiv/y6mnb/). The two datasets with predictions underlying the figures in the paper can be made available on request.
+
+The fifth dataset concerns wage data in the United States and is available from [openicpsr](https://www.openicpsr.org/openicpsr/project/116216/version/V1/view;jsessionid=10AD4ACEB1CC6CC11B75CFCD3DDFB7D5).
 
 To run the code in this repository, generate an additional folder in the repository with the following structure:
 
@@ -31,7 +33,9 @@ To run the code in this repository, generate an additional folder in the reposit
 │   │   ├── GSS2018.dta
 │   ├── mortgage
 │   │   ├── mortgage.csv
-│   ├── to_plot
+│   ├── lemieux
+│   │   ├── morgm.sas7bdat
+│   ├── edit
 ```
 
 ### Generating the plotting data
