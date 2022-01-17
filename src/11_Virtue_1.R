@@ -32,7 +32,7 @@ theme_custom <- theme(panel.grid.major.x = element_line(size = 0.5, linetype = '
                       axis.text.y = element_text(size = 20))
 
 ## Read data taken directly from the PNAS paper of the FFC.
-main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
+main_plot_ffc <- read.csv("./data/ffc/main_plot.csv")
 
 ffc_df <- main_plot_ffc %>%
   rename(outcomes = on,
@@ -76,10 +76,10 @@ theme_custom +
 ## 1B - Fragile Families detail of GPA predictions ------------------------
 
 ## Read train and test set from FFC reproduction package
-df_train <- read.csv("data/ffc/train.csv")
-df_test <- read.csv("data/ffc/test.csv")
+df_train <- read.csv("./data/ffc/train.csv")
+df_test <- read.csv("./data/ffc/test.csv")
 
-ffc_gpa_full <- readRDS("data/edit/ffc_gpa_predictions_baseline_full.rds")
+ffc_gpa_full <- readRDS("./data/edit/ffc_gpa_predictions_baseline_full.rds")
 
 ffc_gpa_demog_ols <- ffc_gpa_full[
        ffc_gpa_full$account == "benchmark_ols_demographic",
@@ -105,7 +105,7 @@ results_melt <- reshape2::melt(results, id.vars = c("test", "nul", "challengeId"
        )
 
 ## Save for Figure 2.B
-saveRDS(results_melt, "data/edit/ffc_gpa_predictions_null_baseline.rds")
+saveRDS(results_melt, "./data/edit/ffc_gpa_predictions_null_baseline.rds")
 
 ## Generate Figure 1.B
 
@@ -122,10 +122,7 @@ fig_1b <- ggplot(results_melt, aes(y = value, x = test, fill = variable)) +
 
 ## New Fig 1C
 
-# results <- readRDS("./data/edit/mortgage_1c_results.rds")
-load("data/mortgage_temp.rda")
-
-dim(w_df)
+load("./data/mortgage_temp.rda")
 
 names(nw_df) <- paste0(names(nw_df), "_", "b")
 names(w_df) <- paste0(names(w_df), "_", "w")
@@ -201,24 +198,7 @@ fig_1c <- ggplot(rel_df %>% filter(sub %in% c("White", "Black"))) +
   ) + ylim(0, 1.03)
   
 ## Figure 1D
-
-source("data/teacher_bias/analysis_functions.R")
-source("data/teacher_bias/plot_functions.R")
-
-## load coefficients
-load("data/teacher_bias/coefs_perfs.rda")
-
-results <- rbind(readRDS("data/teacher_bias/1_50_lm_lme_op_mop_perf.rds"),
-                 readRDS("data/teacher_bias/51_250_lm_lme_op_mop_perf.rds"))
-
-results_full <- rbind(readRDS("data/teacher_bias/1_50_mop_full_perf.rds"),
-                      readRDS("data/teacher_bias/51_100_mop_full_perf.rds"),
-                      readRDS("data/teacher_bias/101_150_mop_full_perf.rds"),
-                      readRDS("data/teacher_bias/151_250_mop_full_perf.rds"))
-
-results_df <- as.data.frame(cbind(results, results_full))
-
-perf <- delist_perf(results_df)
+perf <- readRDS("./data/teacher_bias/teacher_bias_perf.rds")
 
 melted <- reshape2::melt(perf %>%
                            dplyr::select(lm_g, lm_gender, lm_ses, lme_g,
@@ -253,15 +233,15 @@ desc_df_full$model <- factor(desc_df_full$model, levels = c("Interval", "Categor
 desc_df_full$label <- paste0(round(desc_df_full$mean, 3) * 100, "%")
 text_size <- 16
 
-plot_2c_df <- desc_df_full %>% filter(!grepl("Full", type), 
+plot_1d_df <- desc_df_full %>% filter(!grepl("Full", type), 
                                       type == "No random effects",
                                       !grepl("Sex", spec))
 
-plot_2c_df$spec <- factor(plot_2c_df$spec, levels = unique(plot_2c_df$spec))
-plot_2c_df$model <- factor(plot_2c_df$model, levels = c("Categorical", "Interval"))
-plot_2c_df$label <- fix_label(plot_2c_df$label)
+plot_1d_df$spec <- factor(plot_1d_df$spec, levels = unique(plot_1d_df$spec))
+plot_1d_df$model <- factor(plot_1d_df$model, levels = c("Categorical", "Interval"))
+plot_1d_df$label <- fix_label(plot_1d_df$label)
 
-fig_2c <- ggplot(plot_2c_df) +
+fig_1d <- ggplot(plot_1d_df) +
   geom_bar(stat = "identity", position = "dodge2", color = "black", alpha = 0.8, aes(x = fct_rev(as.factor(spec)), y = mean, fill = model)) +
   geom_text(aes(label = label, y = 1.0125, x = fct_rev(as.factor(spec)), fill = model),
             size = 5, position = position_dodge(width = .9), width = .2, family = font_family) +
@@ -282,15 +262,15 @@ fig_2c <- ggplot(plot_2c_df) +
         legend.title = element_text(size = 14)) +
          ylim(0, 1.03)
 
-fig_2c
+## --- Figure 1E
 
-load("data/lemieux/results.rda")
+load("./data/lemieux/results.rda")
 
-fig_1d_df <- melt(resid, id.vars = "year") %>% mutate(variable = gsub("explained", "Explained", variable),
+fig_1e_df <- melt(resid, id.vars = "year") %>% mutate(variable = gsub("explained", "Explained", variable),
                                                       variable = gsub("resid", "Unexplained", variable),
                                                       year = year + 1900)
 
-fig_1d <- ggplot(fig_1d_df) +
+fig_1e <- ggplot(fig_1e_df) +
   geom_area(aes(x = year, y = value, fill = variable), color = "black") +
   scale_fill_manual(name = "", values = MetBrewer::met.brewer("Cassatt1", n = 8)[c(2, 7)]) +
   theme_bw() +
@@ -308,7 +288,7 @@ fig_1d <- ggplot(fig_1d_df) +
         legend.title = element_text(size = 14))
 
 ## Combine plots
-patchwork <- (fig_1a / fig_1c / fig_2c) | (fig_1b / fig_1d)
+patchwork <- (fig_1a / fig_1c / fig_1d) | (fig_1b / fig_1e)
 
 ggsave("tex/figs/fig1_external_consciousness_new.pdf",
        patchwork +
