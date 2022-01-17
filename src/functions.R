@@ -1,5 +1,14 @@
 library(caret)
 
+## General plotting functions
+
+fix_label <- function(col) {
+  ## Add digits for rounded numbers
+  return(ifelse(!grepl("\\.", col),
+  gsub("%", "\\.0%", col), col
+))
+}
+
 ## 01_data_mincerian.R
 
 fit_xgb <- function(train_set, test_set, y_var = "ln_y_I",
@@ -32,27 +41,193 @@ LM_fits <- function(formulas, train, test, var = "ln_y_I") {
     return(list(fits, perfs))
 }
 
+
 ## 03_data_mortgage.R
 
-model_fit <- function(data) {
-    return(lm(accept ~ 1 + female + black + housing_expense_ratio +
-             self_employed + married + bad_history + PI_ratio + loan_to_value +
-             denied_PMI, data = data))
+calc_perf <- function(model, data, w = F, nw = F) {
+  data <- data %>% as.data.frame()
+  if (nw) {
+    true_outcome <- data %>%
+      filter(black == 1) %>%
+      pull(accept_bin)
+    if (length(true_outcome) == 0) {
+      return(NA)
+    }
+    return(mean(round(predict(model, data[data$black == 1, ],
+      type = "response"
+    )) == true_outcome))
+  } else if (w) {
+    true_outcome <- data %>%
+      filter(black == 0) %>%
+      pull(accept_bin)
+    if (length(true_outcome) == 0) {
+      return(NA)
+    }
+    return(mean(round(predict(model, data[data$black == 0, ],
+      type = "response"
+    )) == true_outcome))
+  } else {
+    true_outcome <- data %>%
+      as.data.frame() %>%
+      pull(accept_bin)
+    return(mean(round(predict(model, data,
+      type = "response"
+    )) == true_outcome))
+  }
 }
 
-make_binary <- function(x, sensitivity = 50) {
-    return(ifelse(x > sensitivity, 100, 0))
+
+gen_do_frame <- function(cv_frame, prob = T) {
+  l4 <- map(cv_frame$train, ~ model_4(.))
+  prob_est <- map2(
+    l4, cv_frame$test,
+    ~ calc_prob(.x, .y, prob = prob)
+  )
+  return(data.table::rbindlist(prob_est))
 }
 
 
-predict_models <- function(df_test, df_train, fits,
-                           outcomes = list("y_lin", "y_sq", "y_root")) {
-    predict_fun <- lapply(outcomes, FUN = function(x) {
-            predict(fits[[x]], df_test) - df_test[[x]]})
-    predicts_mean <- lapply(outcomes, FUN = function(x) df_test[[x]] -
-                            mean(df_train[[x]]))
-    return(list(predict_fun, predicts_mean))
+calc_prob <- function(model, data, prob = T) {
+  ## Calculate predicted probability and
+  ## when intervening on race variable
+
+  original_data <- data %>%
+    as.data.frame()
+
+  ## Whites
+  w_data <- original_data %>%
+    filter(black == 0)
+  w_do_data <- w_data %>%
+    filter(black == 0) %>%
+    mutate(black = 1)
+  w_w <- predict(model, w_data, type = "response")
+  w_nw <- predict(model, w_do_data, type = "response")
+
+  ## Non-whites
+  nw_data <- original_data %>%
+    filter(black == 1)
+  nw_do_data <- nw_data %>%
+    filter(black == 1) %>%
+    mutate(black = 0)
+  nw_nw <- predict(model, nw_data, type = "response")
+  nw_w <- predict(model, nw_do_data, type = "response")
+
+  
+    if (prob) {
+    return(data.frame(
+      w_w = mean(w_w),
+      w_nw = mean(w_nw),
+      nw_nw = mean(nw_nw),
+      nw_w = mean(nw_w)
+    ))
+    } else {
+    return(data.frame(
+      w_w = mean(round(w_w)),
+      w_nw = mean(round(w_nw)),
+      nw_nw = mean(round(nw_nw)),
+      nw_w = mean(round(nw_w))
+    ))
+    }
 }
+
+
+calc_prob_single <- function(model, data, prob = T, w = T) {
+    ## Calculate predicted probability and
+    ## when intervening on race variable
+
+    original_data <- data %>%
+        as.data.frame()
+
+    ## Whites
+    w_data <- original_data %>%
+        filter(black == 0)
+    w_do_data <- w_data %>%
+        filter(black == 0) %>%
+        mutate(black = 1)
+    w_w <- predict(model, w_data, type = "response")
+    w_nw <- predict(model, w_do_data, type = "response")
+
+    ## Non-whites
+    nw_data <- original_data %>%
+        filter(black == 1)
+    nw_do_data <- nw_data %>%
+        filter(black == 1) %>%
+        mutate(black = 0)
+    nw_nw <- predict(model, nw_data, type = "response")
+    nw_w <- predict(model, nw_do_data, type = "response")
+
+    if (w) {
+        return(data.frame(
+            w_w = w_w,
+            w_nw = w_nw
+        ))
+    } else {
+        return(data.frame(
+            nw_nw = nw_nw,
+            nw_w = nw_w
+        ))
+    }
+}
+
+
+model_0 <- function(data) {
+    glm(accept_bin ~ 1, data = data, family = "binomial")
+}
+
+
+model_1 <- function(data) {
+    glm(accept_bin ~ 1 + housing_expense_ratio +
+    bad_history + PI_ratio + loan_to_value +
+    denied_PMI, data = data, family = "binomial")
+}
+
+
+model_2 <- function(data) {
+    glm(accept_bin ~ 1 + self_employed + married +
+    housing_expense_ratio + bad_history + PI_ratio + loan_to_value +
+    denied_PMI, data = data, family = "binomial")
+}
+
+
+model_3 <- function(data) {
+    glm(accept_bin ~ 1 + female + self_employed + married +
+    housing_expense_ratio + bad_history + PI_ratio + loan_to_value +
+    denied_PMI, data = data, family = "binomial")
+}
+
+
+model_4 <- function(data) {
+    glm(accept_bin ~ 1 + black + self_employed + married +
+    housing_expense_ratio + bad_history + PI_ratio + loan_to_value +
+    denied_PMI, data = data, family = "binomial")
+}
+
+
+model_5 <- function(data) {
+    glm(accept_bin ~ 1 + female + self_employed + married +
+    housing_expense_ratio + bad_history + PI_ratio + loan_to_value +
+    denied_PMI + black, data = data, family = "binomial")
+}
+
+
+gen_cv_frame <- function(cv_frame, cv_frame_1, cv_frame_2, nw = F, w = F) {
+  l0 <- map(cv_frame$train, ~ model_0(.))
+  l1 <- map(cv_frame$train, ~ model_1(.))
+  l2 <- map(cv_frame$train, ~ model_2(.))
+  l3 <- map(cv_frame$train, ~ model_3(.))
+  l4 <- map(cv_frame$train, ~ model_4(.))
+  l5 <- map(cv_frame$train, ~ model_5(.))
+
+  return(data.frame(
+    m0 = unlist(map2(l0, cv_frame$test, ~ calc_perf(.x, .y, nw, w))),
+    m1 = unlist(map2(l1, cv_frame$test, ~ calc_perf(.x, .y, nw, w))),
+    m2 = unlist(map2(l2, cv_frame$test, ~ calc_perf(.x, .y, nw, w))),
+    m3 = unlist(map2(l3, cv_frame$test, ~ calc_perf(.x, .y, nw, w))),
+    m4 = unlist(map2(l4, cv_frame$test, ~ calc_perf(.x, .y, nw, w))),
+    m5 = unlist(map2(l5, cv_frame$test, ~ calc_perf(.x, .y, nw, w)))
+  ))
+}
+
 
 ## 04_teacher_bias.R
 

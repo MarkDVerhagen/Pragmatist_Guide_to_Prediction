@@ -17,7 +17,6 @@ set.seed(08544)
 ############################
 ## Load required packages ##
 ############################
-install.packages()
 library(tidyverse)
 library(magrittr)
 library(haven)
@@ -27,9 +26,9 @@ library(foreach)
 library(readstata13)
 library(Amelia)
 library(ranger)
-library(quadprog)
-library(readr)
-library(here)
+# library(quadprog)
+# library(readr)
+# library(here)
 
 # Set directory information
 data.dir <- file.path(here(), "data")
@@ -43,7 +42,7 @@ theme_set(theme_bw())
 ## Load data ##
 ###############
 
-background <- read.dta13("data/ffc/background.dta", convert.factors = F)
+background <- readstata13::read.dta13("data/ffc/background.dta", convert.factors = F)
 train <- read_csv("data/ffc/train.csv")
 test <- read_csv("data/ffc/test.csv")
 outcomes <- colnames(train)[-1]
@@ -212,7 +211,7 @@ get.benchmark.predictions <- function(outcome, model = "full", data = d) {
     logit <- glm(formula = thisFormula,
                  family = binomial(link = "logit"),
                  data = imputed[!is.na(data[,outcome]),])
-    logit.yhat[!missing_all_predictors] <- predict(ols, newdata = imputed[!missing_all_predictors,], type = "response")
+    logit.yhat[!missing_all_predictors] <- predict(logit, newdata = imputed[!missing_all_predictors,], type = "response") ## Post correction of PNAS paper
   } else {
     # If not binary, make all logit predictions NA
     logit.yhat <- NA
@@ -247,6 +246,10 @@ get.benchmark.predictions <- function(outcome, model = "full", data = d) {
                           T ~ rf))
   return(all_predictions)
 }
+
+gpa_benchmark_predictions <- benchmarks %>%
+  filter(outcome == "gpa") %>%
+  saveRDS("data/edit/ffc_gpa_predictions_baseline.rds")
 
 # Get benchmarks on all outcomes
 benchmarks <- foreach(thisOutcome = outcomes, .combine = "rbind") %do% {
@@ -290,6 +293,18 @@ benchmarks_long <- benchmarks %>%
                                   outcome == "layoff" ~ "F. Layoff")) %>%
   dplyr::select(outcome, outcome_name, account, challengeID, prediction, truth, ybar_train, r2_holdout, beatingBaseline) %>%
   arrange(outcome_name, account, challengeID)
+
+gpa_benchmark <- benchmarks_long %>%
+  filter(outcome == "gpa") %>%
+  filter(account == "benchmark_ols_full")
+
+gpa_benchmark %>%
+  # filter(outcome == "gpa") %>%
+  saveRDS("data/edit/ffc_gpa_predictions_baseline.rds")
+
+gpa_benchmark <- benchmarks_long %>%
+  filter(outcome == "gpa") %>%
+  saveRDS("data/edit/ffc_gpa_predictions_baseline_full.rds")
 
 write_csv(
     benchmarks_long,
@@ -497,12 +512,16 @@ saveRDS(results_melt, "data/to_plot/ffc_gpa.rds")
 
 
 ########################################
-## Plot each teams predictive accuracy #
+## Plot each team's predictive accuracy #
 ########################################
 ## Code by Mark Verhagen
 
 submissions <- read.csv("data/ffc/submissions.csv")
 main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
+
+## Use new benchmarks (post correction of PNAS paper)
+main_plot_ffc_new <- main_plot_ffc %>%
+  dplyr::select(outcome, benchmark)
 
 sub_df <- submissions %>%
   group_by(account, outcome) %>%

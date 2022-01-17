@@ -121,12 +121,12 @@ total_melt <- total_df %>%
   filter(!is.na(truth))
 
 fig_2b <- ggplot(total_melt, aes(x = truth, y = value, fill = variable, color = variable)) +
-  geom_jitter(width = 0.05, alpha = 0.7,
+  geom_jitter(width = 0.05, alpha = 0.8,
   colour = "#333333", pch=21,
   size = 3) +
   ylim(1, 4) +
   xlim(1, 4) +
-  geom_smooth(se = F, size = 2) +
+  geom_smooth(se = F) +
   geom_abline(intercept = 0, slope = 1, linetype = "dotted") +
   geom_hline(yintercept = mean(total_df_clean$truth), linetype = "dashed") +
   scale_fill_manual(name = "", values = MetBrewer::met.brewer("Signac")[c(3, 13)],
@@ -139,13 +139,35 @@ fig_2b <- ggplot(total_melt, aes(x = truth, y = value, fill = variable, color = 
     theme_custom +
     theme(
     legend.text = element_text(size = 15),
-    legend.title = element_text(size = 14),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank()
+    legend.title = element_text(size = 14)
+    # ,
+    # axis.text.x = element_blank(),
+    # axis.ticks.x = element_blank()
   )
     
 
 #  Mincerian wage equation ------------------------------------------------
+
+## SIMPLE SIMULATION PLOT
+
+# data <- readRDS("data/mincerian/simul_1000.rds")
+
+# df <- data %>%
+#   mutate(lm_1_1 = 1 - (lm_1_1 / lm_1_bench),
+#          lm_1_2 = 1 - (lm_1_2 / lm_1_bench),
+#          lm_1_3 = 1 - (lm_1_3 / lm_1_bench),
+#          lm_2_1 = 1 - (lm_2_1 / lm_2_bench),
+#          lm_2_2 = 1 - (lm_2_2 / lm_2_bench),
+#          lm_2_3 = 1 - (lm_2_3 / lm_2_bench),
+#          lm_3_1 = 1 - (lm_3_1 / lm_3_bench),
+#          lm_3_2 = 1 - (lm_3_2 / lm_3_bench),
+#          lm_3_3 = 1 - (lm_3_3 / lm_3_bench),
+#          gb_1 = 1 - (gb_1 / lm_1_bench),
+#          gb_2 = 1 - (gb_2 / lm_2_bench),
+#          gb_3 = 1 - (gb_3 / lm_3_bench)) %>%
+#   dplyr::select(-lm_1_bench, -lm_2_bench, -lm_3_bench)
+
+## Using the data from 
 
 df <- readRDS("./data/edit/simul_4models_10.rds") %>%
   filter(!grepl("4", variable))
@@ -163,6 +185,12 @@ df_melt <- df %>%
                                              ifelse(grepl("gb", variable), "XGBoost",
                                                     "Other"))))))
 
+# df_summ <- df_melt %>%
+#   group_by(variable) %>%
+#   summarise(mean = mean(value),
+#             sd = sd(value),
+#             model = unique(model),
+#             dataset = unique(dataset))
 
 df_summ <- df_melt
 

@@ -87,12 +87,19 @@ plot_df <- do_df %>%
   rename(success = value) %>%
   mutate(failure = 1 - success) %>%
   group_by(variable) %>%
-  summarise(p5_success = quantile(success, 0.05),
-            p95_success = quantile(success, 0.95),
-            p5_failure = quantile(failure, 0.05),
-            p95_failure = quantile(failure, 0.95),
-            success = mean(success),
-            failure = mean(failure)) %>%
+  summarise(
+    # p5_success = quantile(success, 0.05),
+    # p95_success = quantile(success, 0.95),
+    p5_failure = quantile(failure, 0.05),
+    p95_failure = quantile(failure, 0.95),
+    sd_success = sd(success),
+    success = mean(success),
+    failure = mean(failure)
+  ) %>%
+  mutate(
+    p5_success = success - 1.96 * sd_success,
+    p95_success = success + 1.96 * sd_success
+  ) %>%
   mutate(
       model = ifelse(variable %in% c("nw_nw", "w_w"), "Original Data", "Intervened Data"),
       race = ifelse(grepl("^nw", variable), "Non-White", "White")
@@ -206,9 +213,9 @@ cross_plot <- function(df1, df2, theme_custom, first = T, color1 = "#EE0000FF", 
 }
 
 
-ses_0 <- cross_plot(df_res$ses_00, df_res$ses_10, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as low Parent. Educ.", "Predicted as high Parent. Educ.")) +
+ses_0 <- cross_plot(df_res$ses_00, df_res$ses_10, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low Parent. Educ.", "Predicted as High Parent. Educ.")) +
   theme(legend.position = "none") + ylab("")
-ses_1 <- cross_plot(df_res$ses_01, df_res$ses_11, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as low Parent. Educ.", "Predicted as high Parent. Educ."))
+ses_1 <- cross_plot(df_res$ses_01, df_res$ses_11, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low Parent. Educ.", "Predicted as High Parent. Educ."))
 
 plot_3b <- ((ses_0 + ggtitle("High Parental Education students")) / (ses_1 + ggtitle("Low Parental Education students")) + plot_layout(ncol = 1, guides = "collect") +
                plot_annotation(theme = theme(legend.position = "bottom")))
