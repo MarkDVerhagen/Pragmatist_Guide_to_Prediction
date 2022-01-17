@@ -142,13 +142,13 @@ fig_2b <- ggplot(total_melt, aes(x = truth, y = value, fill = variable, color = 
 
 ## -- Figure 2C
 
-df <- readRDS("./data/edit/simul_4models_10.rds") %>%
-  filter(!grepl("4", variable))
+df <- readRDS("./data/edit/perf_holdout.rds") %>%
+  reshape2::melt()
 
 df_melt <- df %>%
-  mutate(dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "./Dataset I",
-                          ifelse(grepl("lm_2|rf_2|gb_2", variable), "./Dataset II",
-                                 ifelse(grepl("lm_3|rf_3|gb_3", variable), "./Dataset III",
+  mutate(dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "Dataset I",
+                          ifelse(grepl("lm_2|rf_2|gb_2", variable), "Dataset II",
+                                 ifelse(grepl("lm_3|rf_3|gb_3", variable), "Dataset III",
                                         "Else"))),
          model = ifelse(grepl("\\d{1}_1", variable), "Linear I",
                         ifelse(grepl("\\d{1}_2", variable), "Linear II",
@@ -162,10 +162,10 @@ df_plot <- df_melt %>%
 
 df_plot$model <- factor(df_plot$model, levels = c("XGBoost", "Linear I", "Linear II", "Linear III"))
 
-fig_2c <- ggplot(df_plot, aes(y = mean, x = model, group = dataset, fill = model)) +
+fig_2c <- ggplot(df_plot, aes(y = value, x = model, group = dataset, fill = model)) +
   geom_bar(stat = "identity",
   color = "black", alpha = 0.9) +
-  geom_text(aes(label = paste0(as.character(round(mean, 2) * 100), "%")), vjust=-0.5, size = 4.5, family = font_family) +
+  geom_text(aes(label = paste0(as.character(round(value, 2) * 100), "%")), vjust=-0.5, size = 4.5, family = font_family) +
   scale_fill_manual(values = MetBrewer::met.brewer("Egypt"), name = "") +
   ylim(0, 1) +
   scale_y_continuous(limits=c(0.5, 1.05), oob = scales::rescale_none,
