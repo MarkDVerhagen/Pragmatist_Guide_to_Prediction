@@ -31,7 +31,7 @@ theme_custom <- theme(
 
 # Mortgage Discrimination -------------------------------------------------
 
-load("data/mortgage_temp.rda")
+load("./data/mortgage_temp.rda")
 nw_pred_melt <- nw_pred %>%
   reshape2::melt()
 w_pred_melt <- w_pred %>%
@@ -156,62 +156,15 @@ outcome_plot <- ggplot(
 
 ## -- Figure 3C
 
-cross_results_df <- readRDS("data/teacher_bias/1_250_cross_within.rds")
-# cross_results_df <- readRDS("data/simulations/1_250_cross_within_resample.rds")
+cross_results_df <- readRDS("./data/teacher_bias/1_250_cross_within.rds")
 
-names(cross_results_df) <- c("ses_00", "ses_10", "ses_01", "ses_11", "sex_00", "sex_10", "sex_01", "sex_11")
+names(cross_results_df) <-
+  c(
+    "ses_00", "ses_10", "ses_01", "ses_11",
+    "sex_00", "sex_10", "sex_01", "sex_11"
+  )
 
 df_res <- lapply(cross_results_df, FUN = function(x) delist_cross(x, col_names = c("I", "II", "III", "IV", "V")))
-
-
-cross_plot <- function(df1, df2, theme_custom, first = T, color1 = "#EE0000FF", color2 = "#3B4992FF", font_family = "Bookman") {
-  text_size = 5.5
-  df_own <- df1
-  df_other <- df2
-  if (mean(df_own %*% c(1, 2, 3, 4, 5)) > mean(df_other %*% c(1, 2, 3, 4, 5))) {
-    offset = 1  
-  } else {
-    offset = -1
-  }
-  
-  
-  plot_df <- data.frame(df_own, df_other) %>%
-    reshape2::melt() %>%
-    group_by(variable) %>%
-    summarise(mean = mean(value),
-              ptile_5 = quantile(value, probs=0.05, na.rm=TRUE),
-              ptile_95 = quantile(value, probs=0.95, na.rm=TRUE)) %>%
-    mutate(model = ifelse(grepl("\\.1", variable), "Other model", "Own model"),
-           x = gsub("\\.1", "", variable))
-  
-  ggplot(plot_df, aes(x = x, y = mean, fill =model)) +
-    geom_bar(stat = "summary", position = position_dodge(),
-    color = "black"
-    ) +
-    geom_errorbar(aes(ymin = ptile_5, ymax = ptile_95), width = 0.2, position = position_dodge(width=1)) +
-    geom_text(aes(label = paste0(round(mean, 3) * 100, "%")), position = position_dodge(width = 1), hjust=-.4, size=text_size, family = font_family) +
-    coord_flip() + scale_fill_aaas(name = "Prediction model") + cowplot::theme_cowplot() +
-    geom_vline(xintercept = mean(df_own %*% c(1, 2, 3, 4, 5)), linetype="dashed",
-               color = color1) +
-    annotate("text",
-      x = mean(df_own %*% c(1, 2, 3, 4, 5)) + 0.2 * offset, y = 0.6, color = color1, size = text_size,
-      label = as.character(round(mean(df_own %*% c(1, 2, 3, 4, 5)), 3)),
-      family = font_family
-    ) +
-      theme_custom +
-    geom_vline(xintercept = mean(df_other %*% c(1, 2, 3, 4, 5)), linetype = "dashed",
-               color = color2) +
-    annotate("text", x = mean(df_other %*% c(1, 2, 3, 4, 5)) - 0.2 * offset, y = 0.6, color = color2, size=text_size,
-             label = as.character(round(mean(df_other %*% c(1, 2, 3, 4, 5)), 3))) +
-    theme(legend.position = "bottom",
-          panel.border = element_rect(color = "black")
-          # text = element_text(size = 14),
-          # axis.text.x = element_text(size = 14), axis.text.y = element_text(size = 14)
-    ) +
-    scale_y_continuous(labels = scales::percent, limits = c(0, 0.65)) +
-    xlab("Predicted track level") + ylab("Proportion of predictions assigned to track")
-}
-
 
 ses_0 <- cross_plot(df_res$ses_00, df_res$ses_10, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low Parent. Educ.", "Predicted as High Parent. Educ.")) +
   theme(legend.position = "none") + ylab("")
@@ -234,5 +187,4 @@ plot_annotation(
                plot.tag = element_text(face = 'bold'))
 
 ggsave("tex/figs/fig3_group_analysis_new.pdf", last_plot(), height = 10, width = 16)
-# ggsave("tex/figs/fig3_group_analysis.jpg", last_plot(), height = 10, width = 16)
 
