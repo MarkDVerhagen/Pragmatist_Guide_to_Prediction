@@ -1,9 +1,9 @@
 ## Load packages
 
 packages <- c(
-  "tidyverse", "caret", "stargazer", "lme4", "leaps", "gtools",
-  "BBmisc", "ggthemes", "arm", "ggsci", "reshape2", "patchwork",
-  "hrbrthemes", "cowplot", "showtext", "scales"
+  "tidyverse",
+  "reshape2", "patchwork",
+  "cowplot"
 )
 
 lapply(packages, require, character.only = TRUE)
@@ -46,7 +46,7 @@ ffc_df$outcomes <- factor(ffc_df$outcomes,
 ## Generate plot 1.A
 fig_1a <- ggplot(ffc_df, aes(y = bench, x = outcomes)) +
   geom_bar(stat = "identity", fill = pal_aaas(palette = "default")(3)[3],
-           color = "black", alpha = 0.8) +
+           color = "black",alpha = 0.8) +
   geom_text(label = paste0(round(ffc_df$bench, 2) * 100, "%"), vjust = -1,
             size = 5) +
   theme_cowplot() + ylab("Predictive R-squared relative to null model") + xlab("Outcome") +
@@ -141,7 +141,7 @@ fig_1b <- ggplot(results_melt, aes(y = value, x = test, color = variable)) + geo
 
 ## 1C - Mortgage example - Full and Group Predictive Accuracy ------------------------
 
-results <- readRDS("data/edit/mortgage_1c_results.rds")
+results <- readRDS("./data/edit/mortgage_1c_results.rds")
 
 results_melt <- results %>%
   reshape2::melt() %>%

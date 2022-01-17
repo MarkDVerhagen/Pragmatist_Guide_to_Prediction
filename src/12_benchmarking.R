@@ -9,40 +9,26 @@ text_size = 16
 
 # Setup plotting themes --------------------------------------------------------
 
-theme_custom <- theme(panel.grid.major.x = element_line(size = 0.5, linetype = 'dotted',
-                                                        colour = "lightgrey"), 
-                      panel.grid.minor.x = element_line(size = 0.25, linetype = 'dotted',
-                                                        colour = "lightgrey"),
-                      strip.placement = "outside", 
-                      strip.text.y = element_text(face = "bold", hjust=0.5, vjust=0.5),
-                      strip.background=element_rect(fill = NA, color = "black", size = 1.5),
-                      panel.spacing.x=unit(0.08, "lines"),
-                      panel.spacing.y=unit(0.1, "lines"),
-                      panel.border = element_rect(color = "lightgrey", fill = NA, size = 0.5),
-                      legend.position = "top",
-                      text = element_text(size = 16),
-                      axis.text.x = element_text(size = 16),
-                      axis.text.y = element_text(size = 16))
-
-theme_custom_y <- theme_custom + theme(panel.grid.major.y = element_line(size = 0.5, linetype = 'dotted',
-                                                        colour = "lightgrey"),
-                                       panel.grid.minor.y = element_line(size = 0.25, linetype = 'dotted',
-                                                        colour = "lightgrey"))
-
-theme_custom_y <- theme(panel.grid.major.y = element_line(size = 0.5, linetype = 'dotted',
-                                                        colour = "lightgrey"), 
-                      panel.grid.minor.y = element_line(size = 0.25, linetype = 'dotted',
-                                                        colour = "lightgrey"),
-                      strip.placement = "outside", 
-                      strip.text.y = element_text(face = "bold", hjust=0.5, vjust=0.5),
-                      strip.background=element_rect(fill = NA, color = "black", size = 1.5),
-                      panel.spacing.x=unit(0.08, "lines"),
-                      panel.spacing.y=unit(0.1, "lines"),
-                      panel.border = element_rect(color = "lightgrey", fill = NA, size = 0.5),
-                      legend.position = "top",
-                      text = element_text(size = 16),
-                      axis.text.x = element_text(size = 16),
-                      axis.text.y = element_text(size = 16))
+theme_custom <- theme(
+  panel.grid.major.x = element_line(
+    size = 0.5, linetype = "dotted",
+    colour = "lightgrey"
+  ),
+  panel.grid.minor.x = element_line(
+    size = 0.25, linetype = "dotted",
+    colour = "lightgrey"
+  ),
+  strip.placement = "outside",
+  strip.text.y = element_text(face = "bold", hjust = 0.5, vjust = 0.5),
+  strip.background = element_rect(fill = NA, color = "black", size = 1.5),
+  panel.spacing.x = unit(0.08, "lines"),
+  panel.spacing.y = unit(0.1, "lines"),
+  panel.border = element_rect(color = "lightgrey", fill = NA, size = 0.5),
+  legend.position = "top",
+  text = element_text(size = 16),
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 16)
+)
 
 # Data underlying Figure 3 of PNAS paper of the FFC
 main_plot_ffc <- read.csv("data/ffc/main_plot.csv")
@@ -62,8 +48,10 @@ sub_df <- submissions %>%
   mutate(`Improved on\nBenchmark` = ifelse(r2_holdout > benchmark,
                                           "True", "False"))
 
-sub_df$outcome <- factor(sub_df$outcome,
-                         levels = unique(sub_df$outcome[order(sub_df$benchmark, decreasing = T)]))
+sub_df$outcome <- factor(
+  sub_df$outcome,
+  levels = unique(sub_df$outcome[order(sub_df$benchmark, decreasing = T)])
+)
 
 fig_2a <- ggplot(sub_df, aes(x = outcome, y = r2_holdout)) +
   geom_jitter(aes(color = `Improved on\nBenchmark`)) +
@@ -75,7 +63,7 @@ fig_2a <- ggplot(sub_df, aes(x = outcome, y = r2_holdout)) +
                aes(x = c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5),
                    xend = c(1.5, 2.5, 3.5, 4.5, 5.5, 6.5), y=benchmark,
                    yend=benchmark)) +
-  cowplot::theme_cowplot() + theme_custom_y + scale_color_manual(values = ggsci::pal_aaas()(2)[2:1]) +
+  cowplot::theme_cowplot() + theme_custom + scale_color_manual(values = ggsci::pal_aaas()(2)[2:1]) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = (text_size - 1)),
         axis.text.y = element_text(size = (text_size - 1)),
         legend.text = element_text(size = 11),
