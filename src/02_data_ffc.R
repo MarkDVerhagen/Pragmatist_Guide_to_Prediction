@@ -26,9 +26,6 @@ library(foreach)
 library(readstata13)
 library(Amelia)
 library(ranger)
-# library(quadprog)
-# library(readr)
-# library(here)
 
 # Set directory information
 data.dir <- file.path(here(), "data")
