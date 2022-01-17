@@ -2,5 +2,10 @@ data/ffc/
 data/mincerian/
 data/mortgage/
 data/teacher_bias/
+data/edit/
+data/final/
 src/00_data.R
 src/.Rhistory
+.Rproj.user
+src/11_external_consciousness.R
+src/12_benchmarking.R
