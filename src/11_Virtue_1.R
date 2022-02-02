@@ -183,7 +183,6 @@ fig_1c <- ggplot(rel_df %>% filter(sub %in% c("White", "Black"))) +
             aes(label = label, y = mean + 0.075, x = fct_rev(as.factor(var_name)), shape = "Overall"),
             size = 4, width = 2, stroke = 1) +
   coord_flip() + 
-  scale_y_continuous(labels = scales::percent) +
   cowplot::theme_cowplot() +
   scale_fill_manual(name = "", values = MetBrewer::met.brewer("VanGogh1")[c(1, 7)], labels = c("White subset", "Non-White subset")) +
   scale_shape_manual(name = "", values = c(8)) +
@@ -195,8 +194,9 @@ fig_1c <- ggplot(rel_df %>% filter(sub %in% c("White", "Black"))) +
   theme(
          legend.text = element_text(size = 15),
          legend.title = element_text(size = 14)
-  ) + ylim(0, 1.03)
-  
+  ) + ylim(0, 1.03) +
+  scale_y_continuous(labels = scales::percent)
+
 ## Figure 1D
 perf <- readRDS("./data/teacher_bias/teacher_bias_perf.rds")
 
@@ -248,7 +248,6 @@ fig_1d <- ggplot(plot_1d_df) +
   geom_errorbar(aes(y = mean, x = fct_rev(as.factor(spec)), ymin = ptile_5, ymax = ptile_95, fill = model),
                 position = position_dodge(width = .9), width = 0.2) +
   coord_flip() +
-  scale_y_continuous(labels = scales::percent) +
   cowplot::theme_cowplot() +
   scale_fill_manual(name = "", values = MetBrewer::met.brewer("Lakota")[c(3, 6)],
   labels = c("Categorical", "Interval")) +
@@ -260,7 +259,8 @@ fig_1d <- ggplot(plot_1d_df) +
         axis.text.y = element_text(size = (text_size - 1))) +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 14)) +
-         ylim(0, 1.03)
+         ylim(0, 1.03) +
+  scale_y_continuous(labels = scales::percent)
 
 ## --- Figure 1E
 
