@@ -8,7 +8,7 @@ lapply(packages, require, character.only = TRUE)
 
 # Setup plotting themes --------------------------------------------------------
 text_size = 16
-font_family = "Bookman"
+font_family = "Helvetica"
 theme_custom <- theme(
   panel.grid.major.x = element_line(
     size = 0.5, linetype = "dotted",
@@ -184,9 +184,9 @@ fig_2c <- ggplot(df_plot, aes(y = value, x = model, group = dataset, fill = mode
 (fig_2a + fig_2b) / (fig_2c) +
   plot_annotation(
     tag_levels = "A", tag_suffix = '.') &
-  theme(text = element_text("serif"),
+  theme(#text = element_text("serif"),
         plot.tag = element_text(face = 'bold'))
 
-ggsave("tex/figs/fig2_benchmarking_new.pdf", last_plot(),
+ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
        width = 16, height = 14
 )

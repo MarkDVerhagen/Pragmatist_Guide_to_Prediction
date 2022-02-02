@@ -6,7 +6,7 @@ source("src/functions.R")
 
 # Setup plotting themes --------------------------------------------------------
 text_size = 16
-font_family = "Bookman"
+font_family = "Helvetica"
 theme_custom <- theme(
   panel.grid.major.x = element_line(
     size = 0.5, linetype = "dotted",
@@ -166,9 +166,9 @@ names(cross_results_df) <-
 
 df_res <- lapply(cross_results_df, FUN = function(x) delist_cross(x, col_names = c("I", "II", "III", "IV", "V")))
 
-ses_0 <- cross_plot(df_res$ses_00, df_res$ses_10, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low Parent. Educ.", "Predicted as High Parent. Educ.")) +
+ses_0 <- cross_plot(df_res$ses_00, df_res$ses_10, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low\nParental Education", "Predicted as High\nParental Education")) +
   theme(legend.position = "none") + ylab("")
-ses_1 <- cross_plot(df_res$ses_01, df_res$ses_11, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low Parent. Educ.", "Predicted as High Parent. Educ."))
+ses_1 <- cross_plot(df_res$ses_01, df_res$ses_11, theme_custom = theme_custom) + scale_fill_aaas(name = "", labels = c("Predicted as Low\nParental Education", "Predicted as High\nParental Education"))
 
 plot_3b <- ((ses_0 + ggtitle("High Parental Education students")) / (ses_1 + ggtitle("Low Parental Education students")) + plot_layout(ncol = 1, guides = "collect") +
                plot_annotation(theme = theme(legend.position = "bottom")))
@@ -183,8 +183,9 @@ patchwork +
 plot_layout(widths = c(5, 3)) +
 plot_annotation(
   tag_levels = list(c('A.', ' ', 'B.', ' '))) &
-         theme(text = element_text("serif"),
+         theme(#text = element_text("serif"),
                plot.tag = element_text(face = 'bold'))
 
-ggsave("tex/figs/fig3_group_analysis_new.pdf", last_plot(), height = 10, width = 16)
+ggsave("tex/figs/fig3_group_analysis_new.tiff", last_plot(), height = 10, width = 16)
+
 

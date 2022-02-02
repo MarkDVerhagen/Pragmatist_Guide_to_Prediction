@@ -14,7 +14,7 @@ source("./src/functions.R")
 text_size <- 16
 
 # Figure 1A - Fragile Families --------------------------------------------
-font_family = "Bookman"
+font_family = "Helvetica"
 theme_custom <- theme(panel.grid.major.x = element_line(size = 0.5, linetype = 'dotted',
                                                         colour = "lightgrey"), 
                       panel.grid.minor.x = element_line(size = 0.25, linetype = 'dotted',
@@ -28,7 +28,7 @@ theme_custom <- theme(panel.grid.major.x = element_line(size = 0.5, linetype = '
                       panel.border = element_rect(color = "black"),
                       legend.position = "top",
                       text = element_text(size = 20, family = font_family),
-                      axis.text.x = element_text(size = 20),
+                      axis.text.x = element_text(size = 20, family = font_family),
                       axis.text.y = element_text(size = 20))
 
 ## Read data taken directly from the PNAS paper of the FFC.
@@ -290,10 +290,10 @@ fig_1e <- ggplot(fig_1e_df) +
 ## Combine plots
 patchwork <- (fig_1a / fig_1c / fig_1d) | (fig_1b / fig_1e)
 
-ggsave("tex/figs/fig1_external_consciousness_new.pdf",
+ggsave("tex/figs/fig1_external_consciousness.tiff",
        patchwork +
          plot_annotation(tag_levels = list(c('A', 'C', 'D', 'B', 'E')), tag_suffix = '.') &
-         theme(text = element_text("serif"),
+         theme(#text = element_text("serif"),
                plot.tag = element_text(face = 'bold')),
        width = 16, height = 14
 )
