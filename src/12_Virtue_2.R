@@ -1,5 +1,16 @@
-# Load packages
+### 12_Virtue_1.R
+## Author: Mark Verhagen
+##
+## Description: Script to generate Figure 3 in paper
+##
+## Data inputs:
+## - data/ffc/main_plot.csv
+## - data/ffc/submissions.csv
+## - data/ffc/gpa_predictions_baseline.rds
+## - data/mincerian/perf_holdout.rds
+###
 
+# Load packages
 packages <- c(
   "tidyverse", "ggsci", "reshape2", "patchwork",
   "cowplot", "scales", "grid", "gridExtra"
@@ -7,8 +18,9 @@ packages <- c(
 lapply(packages, require, character.only = TRUE)
 
 # Setup plotting themes --------------------------------------------------------
-text_size = 16
-font_family = "Helvetica"
+text_size <- 16
+
+font_family <- "Helvetica"
 theme_custom <- theme(
   panel.grid.major.x = element_line(
     size = 0.5, linetype = "dotted",
@@ -39,54 +51,87 @@ submissions <- read.csv("./data/ffc/submissions.csv")
 
 sub_df <- submissions %>%
   group_by(account, outcome) %>%
-  summarise(r2_holdout = unique(r2_holdout),
-            r2_bench = unique(ybar_train)) %>%
+  summarise(
+    r2_holdout = unique(r2_holdout),
+    r2_bench = unique(ybar_train)
+  ) %>%
   filter(r2_holdout > -0.2) %>%
   ungroup() %>%
   mutate(type = "Submission") %>%
   left_join(main_plot_ffc %>%
-              dplyr::select(outcome, benchmark)) %>%
+    dplyr::select(outcome, benchmark)) %>%
   mutate(`Improved on\nBenchmark` = ifelse(r2_holdout > benchmark,
-                                           "Improvement", "No improvement"))
+    "Improvement", "No improvement"
+  ))
 
 sub_df$outcome <- factor(sub_df$outcome,
-                         levels = unique(sub_df$outcome[order(sub_df$benchmark, decreasing = T)]))
+  levels = unique(sub_df$outcome[order(sub_df$benchmark, decreasing = T)])
+)
 
 fig_2a <- ggplot(sub_df) +
-  geom_jitter(aes(fill = `Improved on\nBenchmark`, color = `Improved on\nBenchmark`,
-  x = outcome, y = r2_holdout),
-  colour = "#333333", pch=21,
-  size = 3, alpha = 0.9) +
+  geom_jitter(aes(
+    fill = `Improved on\nBenchmark`, color = `Improved on\nBenchmark`,
+    x = outcome, y = r2_holdout
+  ),
+  colour = "#333333", pch = 21,
+  size = 3, alpha = 0.9
+  ) +
   geom_point(
     data = sub_df %>% group_by(outcome) %>%
       summarise(benchmark = mean(benchmark)),
     aes(x = outcome, y = benchmark), color = "black", shape = 8, size = 5
   ) +
-    geom_rect(data = data.frame(ymin = rep(0.26, 6), ymax = rep(0.34, 6),
-          xmin = (seq(0.5, 5.5, 1) + 0.03), xmax = (seq(1.5, 6.5, 1) - 0.03)),
-          aes(ymax = ymax, ymin = ymin, xmin = xmin, xmax = xmax),
-         fill =  "white", colour = "black") +
-  geom_text(data = data.frame(label = c("Material\nhardship", "GPA", "Job\ntraining", "Eviction", "Grit", "Layoff"),
-                              x =c("materialHardship", "gpa", "jobTraining", "eviction", "grit", "layoff"),
-                              family = font_family),
-            size = 5, aes(label = label, y = 0.3, x = x), family = font_family) +
-  geom_segment(data = sub_df %>% group_by(outcome) %>%
-                 summarise(benchmark = mean(benchmark)),
-               aes(x = c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5),
-                   xend = c(1.5, 2.5, 3.5, 4.5, 5.5, 6.5), y=benchmark,
-                   yend=benchmark)) +
-  cowplot::theme_cowplot() + theme_custom +
+  geom_rect(
+    data = data.frame(
+      ymin = rep(0.26, 6), ymax = rep(0.34, 6),
+      xmin = (seq(0.5, 5.5, 1) + 0.03), xmax = (seq(1.5, 6.5, 1) - 0.03)
+    ),
+    aes(ymax = ymax, ymin = ymin, xmin = xmin, xmax = xmax),
+    fill = "white", colour = "black"
+  ) +
+  geom_text(
+    data = data.frame(
+      label = c(
+        "Material\nhardship", "GPA", "Job\ntraining",
+        "Eviction", "Grit", "Layoff"
+      ),
+      x = c(
+        "materialHardship", "gpa", "jobTraining", "eviction",
+        "grit", "layoff"
+      ),
+      family = font_family
+    ),
+    size = 5, aes(label = label, y = 0.3, x = x), family = font_family
+  ) +
+  geom_segment(
+    data = sub_df %>% group_by(outcome) %>%
+      summarise(benchmark = mean(benchmark)),
+    aes(
+      x = c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5),
+      xend = c(1.5, 2.5, 3.5, 4.5, 5.5, 6.5), y = benchmark,
+      yend = benchmark
+    )
+  ) +
+  cowplot::theme_cowplot() +
+  theme_custom +
   scale_fill_manual(name = "", values = ggsci::pal_aaas()(2)[1:2]) +
   scale_color_manual(name = "", values = ggsci::pal_aaas()(2)[1:2]) +
-  scale_x_discrete(labels = c("Material\nhardship", "GPA", "Job training",
-                              "Eviction", "Grit", "Layoff")) +
-  scale_y_continuous(limits=c(-0.2, 0.325), oob = scales::rescale_none,
-                     labels = scales::percent_format(accuracy = 5L)) +
-  ylab("Predictive R-squared") + xlab("") +
-  theme(legend.text = element_text(size = 15),
-        legend.title = element_text(size = 14),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+  scale_x_discrete(labels = c(
+    "Material\nhardship", "GPA", "Job training",
+    "Eviction", "Grit", "Layoff"
+  )) +
+  scale_y_continuous(
+    limits = c(-0.2, 0.325), oob = scales::rescale_none,
+    labels = scales::percent_format(accuracy = 5L)
+  ) +
+  ylab("Predictive R-squared") +
+  xlab("") +
+  theme(
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
 ## --- Fig 2B
 
@@ -97,12 +142,12 @@ gpa_submissions <- sub_df %>%
 acc <- gpa_submissions$account[gpa_submissions$r2_holdout == max_gpa_holdout]
 
 acc_df <- submissions %>%
-  filter(account == acc) %>%  ## Select top account's submissions
-  filter(outcome == "gpa") %>%  ## Select GPA only
-  filter(!is.na(truth))  ## Omit missing outcomes
+  filter(account == acc) %>% ## Select top account's submissions
+  filter(outcome == "gpa") %>% ## Select GPA only
+  filter(!is.na(truth)) ## Omit missing outcomes
 
 ## Include linear predictions of baseline model
-base_df <- readRDS("./data/edit/ffc_gpa_predictions_baseline.rds") %>%
+base_df <- readRDS("./data/ffc/gpa_predictions_baseline.rds") %>%
   ungroup() %>%
   select(challengeID, prediction) %>%
   rename(ols_prediction = prediction)
@@ -118,75 +163,103 @@ total_melt <- total_df %>%
   filter(!is.na(truth))
 
 fig_2b <- ggplot(total_melt, aes(x = truth, y = value, fill = variable, color = variable)) +
-  geom_jitter(width = 0.05, alpha = 0.8,
-  colour = "#333333", pch=21,
-  size = 3) +
+  geom_jitter(
+    width = 0.05, alpha = 0.8,
+    colour = "#333333", pch = 21,
+    size = 3
+  ) +
   ylim(1, 4) +
   xlim(1, 4) +
   geom_smooth(se = F) +
   geom_abline(intercept = 0, slope = 1, linetype = "dotted") +
   geom_hline(yintercept = mean(total_df_clean$truth), linetype = "dashed") +
-  scale_fill_manual(name = "", values = MetBrewer::met.brewer("Signac")[c(3, 13)],
-  labels = c("Best submission", "OLS benchmark")) +
-  scale_color_manual(name = "", values = MetBrewer::met.brewer("Signac")[c(3, 13)],
-  labels = c("Best submission", "OLS benchmark")) +
+  scale_fill_manual(
+    name = "", values = MetBrewer::met.brewer("Signac")[c(3, 13)],
+    labels = c("Best submission", "OLS benchmark")
+  ) +
+  scale_color_manual(
+    name = "", values = MetBrewer::met.brewer("Signac")[c(3, 13)],
+    labels = c("Best submission", "OLS benchmark")
+  ) +
   ylab("Predicted GPA") +
   xlab("Actual GPA") +
   cowplot::theme_cowplot() +
-    theme_custom +
-    theme(
+  theme_custom +
+  theme(
     legend.text = element_text(size = 15),
     legend.title = element_text(size = 14)
   )
-    
+
 
 ## -- Figure 2C
 
-df <- readRDS("./data/edit/perf_holdout.rds") %>%
+df <- readRDS("./data/mincerian/perf_holdout.rds") %>%
   reshape2::melt()
 
 df_melt <- df %>%
-  mutate(dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "Dataset I",
-                          ifelse(grepl("lm_2|rf_2|gb_2", variable), "Dataset II",
-                                 ifelse(grepl("lm_3|rf_3|gb_3", variable), "Dataset III",
-                                        "Else"))),
-         model = ifelse(grepl("\\d{1}_1", variable), "Linear I",
-                        ifelse(grepl("\\d{1}_2", variable), "Linear II",
-                               ifelse(grepl("\\d{1}_3", variable), "Linear III",
-                                      ifelse(grepl("rf", variable), "Random Forest",
-                                             ifelse(grepl("gb", variable), "XGBoost",
-                                                    "Other"))))))
+  mutate(
+    dataset = ifelse(grepl("lm_1|rf_1|gb_1", variable), "Dataset I",
+      ifelse(grepl("lm_2|rf_2|gb_2", variable), "Dataset II",
+        ifelse(grepl("lm_3|rf_3|gb_3", variable), "Dataset III",
+          "Else"
+        )
+      )
+    ),
+    model = ifelse(grepl("\\d{1}_1", variable), "Linear I",
+      ifelse(grepl("\\d{1}_2", variable), "Linear II",
+        ifelse(grepl("\\d{1}_3", variable), "Linear III",
+          ifelse(grepl("rf", variable), "Random Forest",
+            ifelse(grepl("gb", variable), "XGBoost",
+              "Other"
+            )
+          )
+        )
+      )
+    )
+  )
 
 df_plot <- df_melt %>%
   filter(!grepl("rf", variable))
 
 df_plot$model <- factor(df_plot$model, levels = c("XGBoost", "Linear I", "Linear II", "Linear III"))
 
-fig_2c <- ggplot(df_plot, aes(y = value, x = model, group = dataset, fill = model)) +
-  geom_bar(stat = "identity",
-  color = "black", alpha = 0.9) +
-  geom_text(aes(label = paste0(as.character(round(value, 2) * 100), "%")), vjust=-0.5, size = 4.5, family = font_family) +
+fig_2c <- ggplot(
+  df_plot, aes(y = value, x = model, group = dataset, fill = model)
+) +
+  geom_bar(
+    stat = "identity",
+    color = "black", alpha = 0.9
+  ) +
+  geom_text(aes(label = paste0(as.character(round(value, 2) * 100), "%")), vjust = -0.5, size = 4.5, family = font_family) +
   scale_fill_manual(values = MetBrewer::met.brewer("Egypt"), name = "") +
   ylim(0, 1) +
-  scale_y_continuous(limits=c(0.5, 1.05), oob = scales::rescale_none,
-                     labels = scales::percent_format(accuracy = 5L)) +
+  scale_y_continuous(
+    limits = c(0.5, 1.05), oob = scales::rescale_none,
+    labels = scales::percent_format(accuracy = 5L)
+  ) +
   facet_wrap(~dataset) +
-  cowplot::theme_cowplot() + xlab("Model used for prediction") + ylab("Predictive R-squared") +
+  cowplot::theme_cowplot() +
+  xlab("Model used for prediction") +
+  ylab("Predictive R-squared") +
   theme_custom +
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  theme(legend.text = element_text(size = 15),
-        legend.title = element_text(size = 14),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+  theme(
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
 # combine plot ------------------------------------------------------------
 
 (fig_2a + fig_2b) / (fig_2c) +
   plot_annotation(
-    tag_levels = "A", tag_suffix = '.') &
-  theme(#text = element_text("serif"),
-        plot.tag = element_text(face = 'bold'))
+    tag_levels = "A", tag_suffix = "."
+  ) &
+  theme( # text = element_text("serif"),
+    plot.tag = element_text(face = "bold")
+  )
 
 ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
-       width = 16, height = 14
+  width = 16, height = 14
 )
