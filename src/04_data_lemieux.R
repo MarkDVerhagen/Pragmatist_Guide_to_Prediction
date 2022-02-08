@@ -1,26 +1,20 @@
+### 04_data_lemieux.R
+## Author: Mark Verhagen
+##
+## Description: Code to generate results for the
+## wage example
+##
+## Data inputs:
+## - data/lemieux/morgm.sas7bdat
+##
+## Data outputs:
+## - data/lemieux/results.rda
+###
+
 library("data.table")
 library("haven")
 library("tidyverse")
-library("parallel)"
-
-theme_custom <- theme(
-  panel.grid.major.x =
-    element_line(size = 0.5, linetype = "dotted", colour = "lightgrey"),
-  panel.grid.minor.x = element_line(
-    size = 0.25, linetype = "dotted",
-    colour = "lightgrey"
-  ),
-  strip.placement = "outside",
-  strip.text.y = element_text(face = "bold", hjust = 0.5, vjust = 0.5),
-  strip.background = element_rect(fill = NA, color = "black", size = 1.5),
-  panel.spacing.x = unit(0.08, "lines"),
-  panel.spacing.y = unit(0.1, "lines"),
-  panel.border = element_rect(color = "lightgrey", fill = NA, size = 0.5),
-  legend.position = "top",
-  text = element_text(size = 20),
-  axis.text.x = element_text(size = 20),
-  axis.text.y = element_text(size = 20)
-)
+library("Hmisc")
 
 d <- haven::read_sas("data/lemieux/morgm.sas7bdat")
 setDT(d)
