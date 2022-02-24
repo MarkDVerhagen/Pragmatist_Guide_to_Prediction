@@ -264,7 +264,7 @@ ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
   width = 16, height = 14
 )
 
-ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
+ggsave("tex/figs/fig2_benchmarking_new.pdf", last_plot(),
   device = "pdf",
   width = 16, height = 14
 )
