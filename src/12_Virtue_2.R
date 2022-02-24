@@ -263,3 +263,8 @@ fig_2c <- ggplot(
 ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
   width = 16, height = 14
 )
+
+ggsave("tex/figs/fig2_benchmarking_new.tiff", last_plot(),
+  device = "pdf",
+  width = 16, height = 14
+)

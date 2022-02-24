@@ -229,3 +229,4 @@ patchwork +
   )
 
 ggsave("tex/figs/fig3_group_analysis_new.tiff", last_plot(), height = 10, width = 16)
+ggsave("tex/figs/fig3_group_analysis_new.pdf", last_plot(), height = 10, width = 16, device = "pdf")

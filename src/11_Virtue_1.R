@@ -388,3 +388,13 @@ ggsave("tex/figs/fig1_external_consciousness.tiff",
               ),
        width = 16, height = 14
 )
+
+ggsave("tex/figs/fig1_external_consciousness.pdf",
+       patchwork +
+              plot_annotation(tag_levels = list(c("A", "C", "D", "B", "E")), tag_suffix = ".") &
+              theme( # text = element_text("serif"),
+                     plot.tag = element_text(face = "bold")
+              ),
+       device = "pdf",
+       width = 16, height = 14
+)
