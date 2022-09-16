@@ -15,7 +15,6 @@
 library(foreign)
 library(xgboost)
 library(tidyverse)
-library(doParallel)
 library(caret)
 library(randomForest)
 
