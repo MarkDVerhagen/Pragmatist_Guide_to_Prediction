@@ -11,14 +11,13 @@
 ## - data/mortgage/mortgage_results.rda
 ###
 
-library(foreign)
 library(tidyverse)
 library(assertthat)
 
 source("./src/functions.R")
 
 ## Drop missing
-data <- read.dta("./data/mortgage/mortgage.dta") %>%
+data <- heaven::read_dta("./data/mortgage/mortgage.dta") %>%
     mutate(accept = accept * 100) %>%
     filter(
         !is.na(female),
